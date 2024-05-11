@@ -1,17 +1,27 @@
 #[cfg(windows)]
 extern crate winapi;
 
-use std::ffi::OsString;
-use std::os::windows::ffi::OsStringExt;
+use std::ffi::{OsStr, OsString};
+use std::iter::once;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::ptr::null_mut;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
+use winapi::shared::ntdef::{LPCWSTR, NULL};
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
-    EnumWindows, GetClassNameW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible,
+    EnumWindows, FindWindowW, GetClassNameW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible,
 };
 
 fn main() {
-    println!("{:#?}", get_active_windows());
+    println!("{:#?}", find_window("Battlefield™ 1"));
+}
+
+fn find_window(window_name: &str) -> HWND {
+    let window_name: Vec<u16> = OsStr::new(window_name).encode_wide().chain(once(0)).collect();
+    let hwnd: HWND = unsafe { FindWindowW(null_mut(), window_name.as_ptr()) };
+
+    hwnd
 }
 
 fn get_active_windows() -> Vec<(HWND, String, String)> {
@@ -25,8 +35,7 @@ fn get_active_windows() -> Vec<(HWND, String, String)> {
             GetWindowTextW(hwnd, title_buffer.as_mut_ptr(), title_len + 1);
 
             let title = OsString::from_wide(&title_buffer);
-            let title = String::from(title.to_str().unwrap());
-            // let title = String::from(title.to_string_lossy());
+            let title = title.to_str().unwrap().to_string();
 
             let mut class_buffer = Vec::with_capacity((32) as usize);
             class_buffer.set_len((32) as usize);
@@ -34,8 +43,7 @@ fn get_active_windows() -> Vec<(HWND, String, String)> {
             GetClassNameW(hwnd, class_buffer.as_mut_ptr(), class_buffer.len() as c_int);
 
             let class_name = OsString::from_wide(&class_buffer);
-            let class_name = String::from(class_name.to_str().unwrap());
-            // let class_name = String::from(class_name.to_string_lossy());
+            let class_name = class_name.to_str().unwrap().to_string();
 
             let visible_windows: &mut Vec<(HWND, String, String)> =
                 &mut *(lparam as *mut Vec<(HWND, String, String)>);
