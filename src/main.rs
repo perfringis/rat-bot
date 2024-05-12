@@ -5,20 +5,40 @@ use std::ffi::{OsStr, OsString};
 use std::iter::once;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
+use sysinfo::System;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
-use winapi::shared::ntdef::{LPCWSTR, NULL};
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
     EnumWindows, FindWindowW, GetClassNameW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible,
 };
 
 fn main() {
-    println!("{:#?}", find_window("Battlefield™ 1"));
+    // let handle = find_window("Battlefield™ 1");
+
+    
+
+}
+
+fn find_process(process_name: &str) -> Result<(u32, String), ()> {
+    let mut system = System::new_all();
+
+    system.refresh_all();
+
+    for (pid, process) in system.processes() {
+        if process.name().contains(process_name) {
+            return Ok((pid.as_u32(), String::from(process.name())));
+        }
+    }
+
+    Err(())
 }
 
 fn find_window(window_name: &str) -> HWND {
-    let window_name: Vec<u16> = OsStr::new(window_name).encode_wide().chain(once(0)).collect();
+    let window_name: Vec<u16> = OsStr::new(window_name)
+        .encode_wide()
+        .chain(once(0))
+        .collect();
     let hwnd: HWND = unsafe { FindWindowW(null_mut(), window_name.as_ptr()) };
 
     hwnd
