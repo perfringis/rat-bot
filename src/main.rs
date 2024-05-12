@@ -3,21 +3,39 @@ extern crate winapi;
 
 use std::ffi::{OsStr, OsString};
 use std::iter::once;
+use std::mem;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
 use sysinfo::System;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
 use winapi::shared::windef::HWND;
+use winapi::um::handleapi::INVALID_HANDLE_VALUE;
+use winapi::um::tlhelp32::PROCESSENTRY32W;
+use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32};
 use winapi::um::winuser::{
     EnumWindows, FindWindowW, GetClassNameW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible,
 };
 
 fn main() {
     // let handle = find_window("Battlefield™ 1");
+    let process_data = match find_process("bf") {
+        Ok(process) => process,
+        Err(error) => (0, String::new()),
+    };
 
-    
+    let handle = unsafe {
+        CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_data.0)
+    };
 
+    if handle.is_null() || handle == INVALID_HANDLE_VALUE {
+        println!("HANDLE IS NULL OR INVALID");
+    }
+
+    let mut process_entry: PROCESSENTRY32W = unsafe { mem::zeroed() };
+    process_entry.dwSize = mem::size_of::<PROCESSENTRY32W>() as u32;
+
+    // finish here
 }
 
 fn find_process(process_name: &str) -> Result<(u32, String), ()> {
