@@ -42,7 +42,7 @@ fn get_base_address() {
 
     let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
     if success == TRUE {
-        println!("base address {:#?}", module_entry.modBaseAddr);
+        println!("{:#?}", module_entry.modBaseAddr);
     }
 
     unsafe { CloseHandle(module_handle) };
