@@ -39,10 +39,11 @@ fn main() {
     let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, FALSE, process_id as DWORD) };
     println!("process handle: {:#?}", process_handle);
 
-    let allocate_memmory =
+    // in other code is 0x300 = 768 = 256 * 3
+    let allocate_memory_address =
         unsafe { VirtualAllocEx(process_handle, NULL, 256 * 3, MEM_COMMIT, PAGE_READWRITE) };
 
-    println!("allocate_memmory: {:#?}", allocate_memmory);
+    println!("allocate_memory_address: {:#?}", allocate_memory_address);
 }
 
 // fn get_base_address() {
