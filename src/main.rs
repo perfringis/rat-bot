@@ -20,9 +20,12 @@ use winapi::um::winuser::{
 };
 
 use winapi::shared::ntdef::NULL;
+use winapi::um::memoryapi::ReadProcessMemory;
 use winapi::um::memoryapi::VirtualAllocEx;
 use winapi::um::winnt::MEM_COMMIT;
 use winapi::um::winnt::PAGE_READWRITE;
+
+fn chat_list_pointer() {}
 
 fn main() {
     let process_data = match find_process("bf") {
@@ -36,6 +39,7 @@ fn main() {
     println!("process id: {:#?}", process_id);
     println!("process name: {:#?}", process_name);
 
+    // 0x140000000 = 5368709120
     let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, FALSE, process_id as DWORD) };
     println!("process handle: {:#?}", process_handle);
 
@@ -44,33 +48,61 @@ fn main() {
         unsafe { VirtualAllocEx(process_handle, NULL, 256 * 3, MEM_COMMIT, PAGE_READWRITE) };
 
     println!("allocate_memory_address: {:#?}", allocate_memory_address);
+
+    // BASE ADDRESS START
+    let module_handle =
+        unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id) };
+
+    if module_handle.is_null() || module_handle == INVALID_HANDLE_VALUE {
+        println!("HANDLE IS NULL OR INVALID");
+    }
+
+    let mut module_entry: MODULEENTRY32W = unsafe { mem::zeroed() };
+    module_entry.dwSize = mem::size_of::<MODULEENTRY32W>() as u32;
+
+    let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
+    if success == TRUE {
+        println!("base address: {:#?}", module_entry.modBaseAddr);
+    }
+
+    unsafe { CloseHandle(module_handle) };
+    // BASE ADDRESS END
+
+    // add implementation of ReadProcessMemory
+    // Win32.ReadProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
+    // Win32.ReadProcessMemory(Bf1ProHandle, address, buffer, size, out _);
+    // ReadProcessMemory(hProcess, (LPCVOID)pointer, &value, sizeof(value), 0)
+    // ReadProcessMemory(hProcess, (LPCVOID)(pointer + offset), &value, sizeof(value), 0)
+
+    // add code here
+    // let read_memory = unsafe { ReadProcessMemory(process_handle) };
 }
 
-// fn get_base_address() {
-//     let process_data = match find_process("bf") {
-//         Ok(process) => process,
-//         Err(error) => (0, String::new()),
-//     };
+fn get_base_address() {
+    let process_data = match find_process("bf") {
+        Ok(process) => process,
+        Err(error) => (0, String::new()),
+    };
 
-//     let process_id = process_data.0;
+    let process_id = process_data.0;
 
-//     let module_handle =
-//         unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id) };
+    let module_handle =
+        unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id) };
 
-//     if module_handle.is_null() || module_handle == INVALID_HANDLE_VALUE {
-//         println!("HANDLE IS NULL OR INVALID");
-//     }
+    if module_handle.is_null() || module_handle == INVALID_HANDLE_VALUE {
+        println!("HANDLE IS NULL OR INVALID");
+    }
 
-//     let mut module_entry: MODULEENTRY32W = unsafe { mem::zeroed() };
-//     module_entry.dwSize = mem::size_of::<MODULEENTRY32W>() as u32;
+    let mut module_entry: MODULEENTRY32W = unsafe { mem::zeroed() };
+    module_entry.dwSize = mem::size_of::<MODULEENTRY32W>() as u32;
 
-//     let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
-//     if success == TRUE {
-//         println!("{:#?}", module_entry.modBaseAddr);
-//     }
+    let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
+    if success == TRUE {
+        println!("{:#?}", module_entry.modBaseAddr);
+    }
 
-//     unsafe { CloseHandle(module_handle) };
-// }
+    unsafe { CloseHandle(module_handle) };
+}
 
 fn find_process(process_name: &str) -> Result<(u32, String), ()> {
     let mut system = System::new_all();
