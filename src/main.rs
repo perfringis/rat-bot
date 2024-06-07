@@ -74,6 +74,29 @@ fn main() {
     // ReadProcessMemory(hProcess, (LPCVOID)pointer, &value, sizeof(value), 0)
     // ReadProcessMemory(hProcess, (LPCVOID)(pointer + offset), &value, sizeof(value), 0)
 
+    // let OFFSET_CHAT_MESSAGE_ADDRESS_START = 0x180;
+
+    // different approach
+    // let value = unsafe { module_entry.modBaseAddr.offset(0) as usize + 0x39f1e50 } as *mut u8;
+    let offset = module_entry.modBaseAddr.wrapping_offset(0x39f1e50);
+    println!("offset 1: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x8);
+    println!("offset 2: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x28);
+    println!("offset 3: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x0);
+    println!("offset 4: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x20);
+    println!("offset 5: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x18);
+    println!("offset 6: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x28);
+    println!("offset 7: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x38);
+    println!("offset 8: {:#?}", offset);
+    let offset = offset.wrapping_offset(0x40);
+    println!("offset 9: {:#?}", offset);
+
     // add code here
     // let read_memory = unsafe { ReadProcessMemory(process_handle) };
 }
