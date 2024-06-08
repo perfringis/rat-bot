@@ -3,12 +3,13 @@ extern crate winapi;
 
 use std::ffi::{OsStr, OsString};
 use std::iter::once;
-use std::mem;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::null_mut;
+use std::{io, mem};
 use sysinfo::System;
-use winapi::ctypes::c_int;
-use winapi::shared::minwindef::{BOOL, DWORD, FALSE, LPARAM, TRUE};
+use winapi::ctypes::{c_int, c_void};
+use winapi::shared::basetsd::SIZE_T;
+use winapi::shared::minwindef::{BOOL, DWORD, FALSE, LPARAM, LPCVOID, LPVOID, TRUE};
 use winapi::shared::windef::HWND;
 use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
 use winapi::um::processthreadsapi::OpenProcess;
@@ -19,13 +20,46 @@ use winapi::um::winuser::{
     EnumWindows, FindWindowW, GetClassNameW, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible,
 };
 
-use winapi::shared::ntdef::NULL;
+use winapi::shared::ntdef::{HANDLE, NULL};
 use winapi::um::memoryapi::ReadProcessMemory;
 use winapi::um::memoryapi::VirtualAllocEx;
 use winapi::um::winnt::MEM_COMMIT;
 use winapi::um::winnt::PAGE_READWRITE;
 
-fn chat_list_pointer() {}
+fn read_addr(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
+    let mut buffer = vec![0u8; 8];
+
+    let address = unsafe {
+        ReadProcessMemory(
+            process,
+            address as *const c_void,
+            buffer.as_mut_ptr() as *mut c_void,
+            buffer.len() as SIZE_T,
+            0 as *mut SIZE_T,
+        )
+    };
+
+    if address == 1 {
+        Ok(buffer)
+    } else {
+        Err(0)
+    }
+}
+
+fn is_valid(address: *const u32) -> bool {
+    address as i64 >= 0x10000 && address as i64 <= 0x000F000000000000
+}
+
+fn chat_list_pointer(process: HANDLE, base_address: *mut u8) {
+    let address = read_addr(process, base_address.wrapping_add(0x39F1E50)).unwrap();
+
+    // new approach
+    // let str_len = address.iter().position(|x| *x == 0).unwrap_or_default();
+    // println!("{:#?}", String::from_utf8_lossy(&address[0..str_len]));
+
+    // new approach 2
+    // let address = address.as_ptr() as *const u32;
+}
 
 fn main() {
     let process_data = match find_process("bf") {
@@ -39,7 +73,6 @@ fn main() {
     println!("process id: {:#?}", process_id);
     println!("process name: {:#?}", process_name);
 
-    // 0x140000000 = 5368709120
     let process_handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, FALSE, process_id as DWORD) };
     println!("process handle: {:#?}", process_handle);
 
@@ -49,7 +82,6 @@ fn main() {
 
     println!("allocate_memory_address: {:#?}", allocate_memory_address);
 
-    // BASE ADDRESS START
     let module_handle =
         unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id) };
 
@@ -66,39 +98,9 @@ fn main() {
     }
 
     unsafe { CloseHandle(module_handle) };
-    // BASE ADDRESS END
 
-    // add implementation of ReadProcessMemory
-    // Win32.ReadProcessMemory(Bf1ProHandle, address, buffer, buffer.Length, out _);
-    // Win32.ReadProcessMemory(Bf1ProHandle, address, buffer, size, out _);
-    // ReadProcessMemory(hProcess, (LPCVOID)pointer, &value, sizeof(value), 0)
-    // ReadProcessMemory(hProcess, (LPCVOID)(pointer + offset), &value, sizeof(value), 0)
-
-    // let OFFSET_CHAT_MESSAGE_ADDRESS_START = 0x180;
-
-    // different approach
-    // let value = unsafe { module_entry.modBaseAddr.offset(0) as usize + 0x39f1e50 } as *mut u8;
-    let offset = module_entry.modBaseAddr.wrapping_offset(0x39f1e50);
-    println!("offset 1: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x8);
-    println!("offset 2: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x28);
-    println!("offset 3: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x0);
-    println!("offset 4: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x20);
-    println!("offset 5: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x18);
-    println!("offset 6: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x28);
-    println!("offset 7: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x38);
-    println!("offset 8: {:#?}", offset);
-    let offset = offset.wrapping_offset(0x40);
-    println!("offset 9: {:#?}", offset);
-
-    // add code here
-    // let read_memory = unsafe { ReadProcessMemory(process_handle) };
+    let base_address = module_entry.modBaseAddr;
+    chat_list_pointer(process_handle, base_address);
 }
 
 fn get_base_address() {
