@@ -28,7 +28,7 @@ use winapi::um::memoryapi::VirtualAllocEx;
 use winapi::um::winnt::MEM_COMMIT;
 use winapi::um::winnt::PAGE_READWRITE;
 
-fn read_address(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
+fn read_address_vec(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
     let mut buffer = vec![0u8; 8];
 
     let address = unsafe {
@@ -48,62 +48,24 @@ fn read_address(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
     }
 }
 
-fn chat_list_pointer(process: HANDLE, base_address: *mut u8) {
-    let offset_address = base_address.wrapping_add(0x39F1E50);
-    // let address = read_address(process, offset_address).unwrap();
+fn read_address(process: HANDLE, address: *mut u8) -> Result<[u8; 8], u8> {
+    let mut buffer = [0u8; 8];
 
+    let address = unsafe {
+        ReadProcessMemory(
+            process,
+            address as *const c_void,
+            buffer.as_mut_ptr() as *mut c_void,
+            buffer.len() as SIZE_T,
+            0 as *mut SIZE_T,
+        )
+    };
 
-    // new approach
-    // let str_len = address.iter().position(|x| *x == 0).unwrap_or_default();
-    // println!("{:#?}", String::from_utf8_lossy(&address[0..str_len]));
-
-    // new approach 2
-    // let address = address.as_ptr() as *const u32;
-    // println!("addresS: {:#?}", address);
-
-    // new approach 3
-    // println!("{:#?}",  String::from_utf8_lossy(&address));
-
-    // let mut buffer = vec![0u8; 8];
-    // let mut buffer = [0u8; 8];
-
-    // let address = unsafe {
-    //     ReadProcessMemory(
-    //         process,
-    //         base_address as *const c_void,
-    //         buffer.as_mut_ptr() as *mut c_void,
-    //         buffer.len() as SIZE_T,
-    //         0 as *mut SIZE_T,
-    //     )
-    // };
-    // let address_test = usize::from_ne_bytes(buffer) as *mut c_void;
-    // println!("TEXT: {:?}", address_test);
-
-    // let mut buffer = 0usize;
-
-    // let address = unsafe {
-    //     ReadProcessMemory(
-    //         process,
-    //         base_address as *const c_void,
-    //         &mut buffer as *mut usize as _,
-    //         std::mem::size_of::<usize>(),
-    //         0 as *mut SIZE_T,
-    //     )
-    // };
-    // println!("lol: {:?}", buffer);
-
-    // let mut address_buffer = [0; 8 as usize];
-    //     let address = unsafe {
-    //     ReadProcessMemory(
-    //         process,
-    //         base_address as *const c_void,
-    //         address_buffer.as_mut_ptr() as *mut c_void,
-    //         std::mem::size_of::<usize>(),
-    //         0 as *mut SIZE_T,
-    //     )
-    // };
-    // let pe_base_address = unsafe { ptr::read(address_buffer.as_ptr() as *const usize) };
-    // println!("lol 2: {:?}", pe_base_address);
+    if address == 1 {
+        Ok(buffer)
+    } else {
+        Err(0)
+    }
 }
 
 fn main() {
@@ -139,22 +101,23 @@ fn main() {
 
     let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
     if success == TRUE {
-        println!("base address: {:#?}", module_entry.modBaseAddr);
+        println!("BASE ADDRESS: {:#?}", module_entry.modBaseAddr);
     }
 
     unsafe { CloseHandle(module_handle) };
 
     let base_address = module_entry.modBaseAddr;
-    chat_list_pointer(process_handle, base_address);
-    // let pointer = base_address;
+    println!("BASE ADDRESS: {:#?}", base_address);
 
-    // let pointer = read_address(process_handle, pointer.wrapping_add(0x39f1e50)).unwrap();
-    // println!("test {:#?}", pointer);
-    // let pointer = pointer.as_ptr() as *mut u8;
-    // println!("test {:#?}", pointer);
+    let address_and_offset = base_address.wrapping_add(0x39F1E50);
+    println!("ADDRESS AND OFFSET: {:#?}", address_and_offset);
 
-    // 4814670592
-    // 4814670592
+    let read_address = read_address(process_handle, address_and_offset).unwrap();
+    // it's good representation of buffer
+    println!("read_address: {:#?}", read_address);
+
+    let val = read_address.as_ptr() as *mut u8;
+    println!("read_address: {:#?}", val);
 }
 
 fn get_base_address() {
