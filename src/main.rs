@@ -2,9 +2,11 @@
 extern crate winapi;
 
 use std::ffi::{OsStr, OsString};
+use std::io::Read;
 use std::iter::once;
+use std::mem::size_of;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::ptr::null_mut;
+use std::ptr::{self, null_mut};
 use std::{io, mem};
 use sysinfo::System;
 use winapi::ctypes::{c_int, c_void};
@@ -26,7 +28,7 @@ use winapi::um::memoryapi::VirtualAllocEx;
 use winapi::um::winnt::MEM_COMMIT;
 use winapi::um::winnt::PAGE_READWRITE;
 
-fn read_addr(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
+fn read_address(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
     let mut buffer = vec![0u8; 8];
 
     let address = unsafe {
@@ -46,12 +48,10 @@ fn read_addr(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
     }
 }
 
-fn is_valid(address: *const u32) -> bool {
-    address as i64 >= 0x10000 && address as i64 <= 0x000F000000000000
-}
-
 fn chat_list_pointer(process: HANDLE, base_address: *mut u8) {
-    let address = read_addr(process, base_address.wrapping_add(0x39F1E50)).unwrap();
+    let offset_address = base_address.wrapping_add(0x39F1E50);
+    // let address = read_address(process, offset_address).unwrap();
+
 
     // new approach
     // let str_len = address.iter().position(|x| *x == 0).unwrap_or_default();
@@ -59,6 +59,51 @@ fn chat_list_pointer(process: HANDLE, base_address: *mut u8) {
 
     // new approach 2
     // let address = address.as_ptr() as *const u32;
+    // println!("addresS: {:#?}", address);
+
+    // new approach 3
+    // println!("{:#?}",  String::from_utf8_lossy(&address));
+
+    // let mut buffer = vec![0u8; 8];
+    // let mut buffer = [0u8; 8];
+
+    // let address = unsafe {
+    //     ReadProcessMemory(
+    //         process,
+    //         base_address as *const c_void,
+    //         buffer.as_mut_ptr() as *mut c_void,
+    //         buffer.len() as SIZE_T,
+    //         0 as *mut SIZE_T,
+    //     )
+    // };
+    // let address_test = usize::from_ne_bytes(buffer) as *mut c_void;
+    // println!("TEXT: {:?}", address_test);
+
+    // let mut buffer = 0usize;
+
+    // let address = unsafe {
+    //     ReadProcessMemory(
+    //         process,
+    //         base_address as *const c_void,
+    //         &mut buffer as *mut usize as _,
+    //         std::mem::size_of::<usize>(),
+    //         0 as *mut SIZE_T,
+    //     )
+    // };
+    // println!("lol: {:?}", buffer);
+
+    // let mut address_buffer = [0; 8 as usize];
+    //     let address = unsafe {
+    //     ReadProcessMemory(
+    //         process,
+    //         base_address as *const c_void,
+    //         address_buffer.as_mut_ptr() as *mut c_void,
+    //         std::mem::size_of::<usize>(),
+    //         0 as *mut SIZE_T,
+    //     )
+    // };
+    // let pe_base_address = unsafe { ptr::read(address_buffer.as_ptr() as *const usize) };
+    // println!("lol 2: {:?}", pe_base_address);
 }
 
 fn main() {
@@ -77,10 +122,10 @@ fn main() {
     println!("process handle: {:#?}", process_handle);
 
     // in other code is 0x300 = 768 = 256 * 3
-    let allocate_memory_address =
-        unsafe { VirtualAllocEx(process_handle, NULL, 256 * 3, MEM_COMMIT, PAGE_READWRITE) };
+    // let allocate_memory_address =
+    //     unsafe { VirtualAllocEx(process_handle, NULL, 256 * 3, MEM_COMMIT, PAGE_READWRITE) };
 
-    println!("allocate_memory_address: {:#?}", allocate_memory_address);
+    // println!("allocate_memory_address: {:#?}", allocate_memory_address);
 
     let module_handle =
         unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, process_id) };
@@ -101,6 +146,15 @@ fn main() {
 
     let base_address = module_entry.modBaseAddr;
     chat_list_pointer(process_handle, base_address);
+    // let pointer = base_address;
+
+    // let pointer = read_address(process_handle, pointer.wrapping_add(0x39f1e50)).unwrap();
+    // println!("test {:#?}", pointer);
+    // let pointer = pointer.as_ptr() as *mut u8;
+    // println!("test {:#?}", pointer);
+
+    // 4814670592
+    // 4814670592
 }
 
 fn get_base_address() {
