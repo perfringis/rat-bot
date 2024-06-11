@@ -1,12 +1,13 @@
 #[cfg(windows)]
 extern crate winapi;
 
-use std::ffi::{OsStr, OsString};
+use std::ffi::{CStr, OsStr, OsString};
 use std::io::Read;
 use std::iter::once;
 use std::mem::size_of;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::{self, null_mut};
+use std::str::FromStr;
 use std::{io, mem};
 use sysinfo::System;
 use winapi::ctypes::{c_int, c_void};
@@ -115,7 +116,28 @@ fn main() {
     let offset = 0x50 as usize;
     let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    println!("BASE ADDRESS: {:#?}", base_address);
+    let offset_chat_last_sender = 0x138 as usize;
+    let base_address = read_mem(process_handle, base_address + offset_chat_last_sender).unwrap();
+    
+    // pSender
+    let base_address = read_mem(process_handle, base_address).unwrap();
+
+    let mut buffer = vec![0u8; 32];
+
+    unsafe {
+        ReadProcessMemory(
+            process_handle as HANDLE,
+            base_address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            32 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    // THERE IS SECOND WAY TO GET SENDER BY USING String::from_utf8
+    // try it tomorrow
+    println!("TAKING THE LAST SENDER: {:#?}", String::from_utf8_lossy(&buffer).split(":").next().unwrap());
+
 }
 
 fn get_base_address() {
