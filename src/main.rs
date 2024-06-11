@@ -81,76 +81,41 @@ fn main() {
 
     let success = unsafe { Module32FirstW(module_handle, &mut module_entry) };
     if success == TRUE {
-        println!("BASE ADDRESS: {:#?}", module_entry.modBaseAddr);
+        println!("BASE ADDRESS: {:#?}", module_entry.modBaseAddr as usize);
     }
 
     unsafe { CloseHandle(module_handle) };
 
-    let base_address = module_entry.modBaseAddr;
-    println!("BASE ADDRESS: {:#?}", base_address);
-
-    let base_address_size = module_entry.modBaseSize;
-    println!("BASE ADDRESS SIZE: {:#?}", base_address_size);
-
+    let base_address = module_entry.modBaseAddr as usize;
     let offset = 0x39F1E50 as usize;
-    println!("OFFSET 1: {:#?}", offset);
 
-    let base_address_usize = base_address as usize;
-    println!("BASE ADDRESS CONVERTED TO USIZE: {:#?}", base_address_usize);
-
-    let base_address_plus_offset = base_address_usize + offset;
-    println!("BASE ADDRESS + OFFSET 1: {:#?}", base_address_plus_offset);
-
-    // let mut buffer: usize = 0;
-    let mut buffer = vec![0u8; 8];
-    println!("BUFFER BEFORE READ PROCESS MEMORY 1: {:#?}", buffer);
-
-    unsafe {
-        ReadProcessMemory(
-            process_handle as HANDLE,
-            base_address_plus_offset as LPCVOID,
-            buffer.as_mut_ptr() as LPVOID,
-            size_of::<usize>() as SIZE_T,
-            null_mut(),
-        )
-    };
-
-    println!("BUFFER AFTER READ PROCESS MEMORY 1: {:#?}", buffer);
-    println!(
-        "BUFFER AFTER READ PROCESS MEMORY CONVERTED 1: {:#?}",
-        usize::from_ne_bytes(buffer[..8].try_into().unwrap())
-    );
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
     let offset = 0x70 as usize;
-    println!("OFFSET 2: {:#?}", offset);
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    let base_address_usize = usize::from_ne_bytes(buffer[..8].try_into().unwrap()) as usize;
-    println!(
-        "BASE ADDRESS CONVERTED TO USIZE 2: {:#?}",
-        base_address_usize
-    );
+    let offset = 0x20 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    let base_address_plus_offset = base_address_usize + offset;
-    println!("BASE ADDRESS + OFFSET 2: {:#?}", base_address_plus_offset);
+    let offset = 0x18 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    buffer = vec![0u8; 8];
-    println!("BUFFER BEFORE READ PROCESS MEMORY 2: {:#?}", buffer);
+    let offset = 0x28 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    unsafe {
-        ReadProcessMemory(
-            process_handle as HANDLE,
-            base_address_plus_offset as LPCVOID,
-            buffer.as_mut_ptr() as LPVOID,
-            size_of::<usize>() as SIZE_T,
-            null_mut(),
-        )
-    };
+    let offset = 0x28 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
 
-    println!("BUFFER AFTER READ PROCESS MEMORY 2: {:#?}", buffer);
-    println!(
-        "BUFFER AFTER READ PROCESS MEMORY CONVERTED 2: {:#?}",
-        usize::from_ne_bytes(buffer[..8].try_into().unwrap())
-    );
+    let offset = 0x38 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
+
+    let offset = 0xD8 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
+
+    let offset = 0x50 as usize;
+    let base_address = read_mem(process_handle, base_address + offset).unwrap();
+
+    println!("BASE ADDRESS: {:#?}", base_address);
 }
 
 fn get_base_address() {
