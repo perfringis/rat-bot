@@ -28,43 +28,23 @@ use winapi::um::memoryapi::VirtualAllocEx;
 use winapi::um::winnt::MEM_COMMIT;
 use winapi::um::winnt::PAGE_READWRITE;
 
-fn read_address_vec(process: HANDLE, address: *mut u8) -> Result<Vec<u8>, u8> {
+fn read_mem(handle: HANDLE, address: usize) -> Option<usize> {
     let mut buffer = vec![0u8; 8];
 
-    let address = unsafe {
+    let read_result = unsafe {
         ReadProcessMemory(
-            process,
-            address as *const c_void,
-            buffer.as_mut_ptr() as *mut c_void,
-            buffer.len() as SIZE_T,
-            0 as *mut SIZE_T,
+            handle as HANDLE,
+            address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            size_of::<usize>() as SIZE_T,
+            null_mut(),
         )
     };
 
-    if address == 1 {
-        Ok(buffer)
+    if read_result == 0 {
+        None
     } else {
-        Err(0)
-    }
-}
-
-fn read_address(process: HANDLE, address: *mut u8) -> Result<[u8; 8], u8> {
-    let mut buffer = [0u8; 8];
-
-    let address = unsafe {
-        ReadProcessMemory(
-            process,
-            address as *const c_void,
-            buffer.as_mut_ptr() as *mut c_void,
-            buffer.len() as SIZE_T,
-            0 as *mut SIZE_T,
-        )
-    };
-
-    if address == 1 {
-        Ok(buffer)
-    } else {
-        Err(0)
+        Some(usize::from_ne_bytes(buffer[..8].try_into().unwrap()))
     }
 }
 
@@ -109,15 +89,68 @@ fn main() {
     let base_address = module_entry.modBaseAddr;
     println!("BASE ADDRESS: {:#?}", base_address);
 
-    let address_and_offset = base_address.wrapping_add(0x39F1E50);
-    println!("ADDRESS AND OFFSET: {:#?}", address_and_offset);
+    let base_address_size = module_entry.modBaseSize;
+    println!("BASE ADDRESS SIZE: {:#?}", base_address_size);
 
-    let read_address = read_address(process_handle, address_and_offset).unwrap();
-    // it's good representation of buffer
-    println!("read_address: {:#?}", read_address);
+    let offset = 0x39F1E50 as usize;
+    println!("OFFSET 1: {:#?}", offset);
 
-    let val = read_address.as_ptr() as *mut u8;
-    println!("read_address: {:#?}", val);
+    let base_address_usize = base_address as usize;
+    println!("BASE ADDRESS CONVERTED TO USIZE: {:#?}", base_address_usize);
+
+    let base_address_plus_offset = base_address_usize + offset;
+    println!("BASE ADDRESS + OFFSET 1: {:#?}", base_address_plus_offset);
+
+    // let mut buffer: usize = 0;
+    let mut buffer = vec![0u8; 8];
+    println!("BUFFER BEFORE READ PROCESS MEMORY 1: {:#?}", buffer);
+
+    unsafe {
+        ReadProcessMemory(
+            process_handle as HANDLE,
+            base_address_plus_offset as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            size_of::<usize>() as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    println!("BUFFER AFTER READ PROCESS MEMORY 1: {:#?}", buffer);
+    println!(
+        "BUFFER AFTER READ PROCESS MEMORY CONVERTED 1: {:#?}",
+        usize::from_ne_bytes(buffer[..8].try_into().unwrap())
+    );
+
+    let offset = 0x70 as usize;
+    println!("OFFSET 2: {:#?}", offset);
+
+    let base_address_usize = usize::from_ne_bytes(buffer[..8].try_into().unwrap()) as usize;
+    println!(
+        "BASE ADDRESS CONVERTED TO USIZE 2: {:#?}",
+        base_address_usize
+    );
+
+    let base_address_plus_offset = base_address_usize + offset;
+    println!("BASE ADDRESS + OFFSET 2: {:#?}", base_address_plus_offset);
+
+    buffer = vec![0u8; 8];
+    println!("BUFFER BEFORE READ PROCESS MEMORY 2: {:#?}", buffer);
+
+    unsafe {
+        ReadProcessMemory(
+            process_handle as HANDLE,
+            base_address_plus_offset as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            size_of::<usize>() as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    println!("BUFFER AFTER READ PROCESS MEMORY 2: {:#?}", buffer);
+    println!(
+        "BUFFER AFTER READ PROCESS MEMORY CONVERTED 2: {:#?}",
+        usize::from_ne_bytes(buffer[..8].try_into().unwrap())
+    );
 }
 
 fn get_base_address() {
@@ -159,53 +192,3 @@ fn find_process(process_name: &str) -> Result<(u32, String), ()> {
 
     Err(())
 }
-
-// fn find_window(window_name: &str) -> HWND {
-//     let window_name: Vec<u16> = OsStr::new(window_name)
-//         .encode_wide()
-//         .chain(once(0))
-//         .collect();
-//     let hwnd: HWND = unsafe { FindWindowW(null_mut(), window_name.as_ptr()) };
-
-//     hwnd
-// }
-
-// fn get_active_windows() -> Vec<(HWND, String, String)> {
-//     unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
-//         if IsWindowVisible(hwnd) != 0 {
-//             let title_len = GetWindowTextLengthW(hwnd);
-
-//             let mut title_buffer = Vec::with_capacity((title_len + 1) as usize);
-//             title_buffer.set_len((title_len + 1) as usize);
-
-//             GetWindowTextW(hwnd, title_buffer.as_mut_ptr(), title_len + 1);
-
-//             let title = OsString::from_wide(&title_buffer);
-//             let title = title.to_str().unwrap().to_string();
-
-//             let mut class_buffer = Vec::with_capacity((32) as usize);
-//             class_buffer.set_len((32) as usize);
-
-//             GetClassNameW(hwnd, class_buffer.as_mut_ptr(), class_buffer.len() as c_int);
-
-//             let class_name = OsString::from_wide(&class_buffer);
-//             let class_name = class_name.to_str().unwrap().to_string();
-
-//             let visible_windows: &mut Vec<(HWND, String, String)> =
-//                 &mut *(lparam as *mut Vec<(HWND, String, String)>);
-//             visible_windows.push((hwnd, title, class_name));
-//         }
-
-//         TRUE
-//     }
-
-//     let mut visible_windows: Vec<(HWND, String, String)> = Vec::new();
-//     unsafe {
-//         EnumWindows(
-//             Some(enum_windows_callback),
-//             &mut visible_windows as *mut _ as LPARAM,
-//         );
-//     }
-
-//     visible_windows
-// }
