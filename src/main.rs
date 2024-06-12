@@ -49,6 +49,68 @@ fn read_mem(handle: HANDLE, address: usize) -> Option<usize> {
     }
 }
 
+fn read_sender_nickname(handle: HANDLE, address: usize) -> String {
+    let address = read_mem(handle, address + 0x39F1E50 as usize).unwrap();
+    let address = read_mem(handle, address + 0x70 as usize).unwrap();
+    let address = read_mem(handle, address + 0x20 as usize).unwrap();
+    let address = read_mem(handle, address + 0x18 as usize).unwrap();
+    let address = read_mem(handle, address + 0x28 as usize).unwrap();
+    let address = read_mem(handle, address + 0x28 as usize).unwrap();
+    let address = read_mem(handle, address + 0x38 as usize).unwrap();
+    let address = read_mem(handle, address + 0xD8 as usize).unwrap();
+    let address = read_mem(handle, address + 0x50 as usize).unwrap();
+    let address = read_mem(handle, address + 0x138 as usize).unwrap();
+
+    let address = read_mem(handle, address).unwrap();
+
+    let mut buffer = vec![0u8; 32];
+
+    unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            32 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    let nickname = String::from_utf8_lossy(&buffer).to_string();
+    nickname
+}
+
+fn read_sender_message(handle: HANDLE, address: usize) -> String {
+    let address = read_mem(handle, address + 0x39F1E50 as usize).unwrap();
+    let address = read_mem(handle, address + 0x70 as usize).unwrap();
+    let address = read_mem(handle, address + 0x20 as usize).unwrap();
+    let address = read_mem(handle, address + 0x18 as usize).unwrap();
+    let address = read_mem(handle, address + 0x28 as usize).unwrap();
+    let address = read_mem(handle, address + 0x28 as usize).unwrap();
+    let address = read_mem(handle, address + 0x38 as usize).unwrap();
+    let address = read_mem(handle, address + 0xD8 as usize).unwrap();
+    let address = read_mem(handle, address + 0x50 as usize).unwrap();
+    let address = read_mem(handle, address + 0x140 as usize).unwrap();
+
+    let address = read_mem(handle, address).unwrap();
+
+    let mut buffer = vec![0u8; 256];
+
+    unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            256 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    let readable_message_len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
+
+    let message = String::from_utf8_lossy(&buffer[..readable_message_len]).to_string();
+    message
+}
+
 fn main() {
     let process_data = match find_process("bf") {
         Ok(process) => process,
@@ -88,55 +150,12 @@ fn main() {
     unsafe { CloseHandle(module_handle) };
 
     let base_address = module_entry.modBaseAddr as usize;
-    let offset = 0x39F1E50 as usize;
 
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
+    let nickname = read_sender_nickname(process_handle, base_address);
+    println!("SENDER NICKNAME: {:#?}", nickname.split(":").next().unwrap().to_string());
 
-    let offset = 0x70 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x20 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x18 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x28 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x28 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x38 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0xD8 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset = 0x50 as usize;
-    let base_address = read_mem(process_handle, base_address + offset).unwrap();
-
-    let offset_chat_last_sender = 0x138 as usize;
-    let base_address = read_mem(process_handle, base_address + offset_chat_last_sender).unwrap();
-    
-    // pSender
-    let base_address = read_mem(process_handle, base_address).unwrap();
-
-    let mut buffer = vec![0u8; 32];
-
-    unsafe {
-        ReadProcessMemory(
-            process_handle as HANDLE,
-            base_address as LPCVOID,
-            buffer.as_mut_ptr() as LPVOID,
-            32 as SIZE_T,
-            null_mut(),
-        )
-    };
-
-    // THERE IS SECOND WAY TO GET SENDER BY USING String::from_utf8
-    // try it tomorrow
-    println!("TAKING THE LAST SENDER: {:#?}", String::from_utf8_lossy(&buffer).split(":").next().unwrap());
+    let message = read_sender_message(process_handle, base_address);
+    println!("SENDER MESSAGE: {:#?}", message.trim());
 
 }
 
