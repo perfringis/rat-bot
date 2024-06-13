@@ -111,6 +111,93 @@ fn read_sender_message(handle: HANDLE, address: usize) -> String {
     message
 }
 
+fn get_server_name(handle: HANDLE, address: usize) -> String {
+    let address = read_mem(handle, address + 0x3A1F3F8 as usize).unwrap();
+    let address = read_mem(handle, address + 0x30 as usize).unwrap();
+
+    let mut buffer = vec![0u8; 64];
+
+    unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            64 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    let readable_message_len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
+    let server_name = String::from_utf8_lossy(&buffer[..readable_message_len]).to_string();
+
+    server_name
+}
+
+fn get_server_id(handle: HANDLE, address: usize) -> usize {
+    let address = read_mem(handle, address + 0x37FF1A0 as usize).unwrap();
+    let address = read_mem(handle, address + 0x418 as usize).unwrap();
+
+    address
+}
+
+fn get_map_name(handle: HANDLE) -> String {
+    let pointer = read_mem(handle, 0x1437F7758 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0x30 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0x18 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0xB0 as usize).unwrap();
+
+    let mut buffer = vec![0u8; 64];
+
+    unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            pointer as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            64 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    let readable_message_len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
+    let map_name = String::from_utf8_lossy(&buffer[..readable_message_len]).to_string();
+
+    map_name
+}
+
+fn get_game_mode(handle: HANDLE) -> String {
+    let pointer = read_mem(handle, 0x1437F7758 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0x30 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0x30 as usize).unwrap();
+    let pointer = read_mem(handle, pointer + 0x08 as usize).unwrap();
+
+    let mut buffer = vec![0u8; 64];
+
+    unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            pointer as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            64 as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    let readable_message_len = buffer.iter().position(|&c| c == 0).unwrap_or(buffer.len());
+    let map_name = String::from_utf8_lossy(&buffer[..readable_message_len]).to_string();
+
+    map_name
+}
+
+fn get_server_time(handle: HANDLE, address: usize) -> usize {
+    let address = read_mem(handle, address + 0x3A31138 as usize).unwrap();
+    let address = read_mem(handle, address + 0x20 as usize).unwrap();
+    let address = read_mem(handle, address + 0x38 as usize).unwrap();
+    let address = read_mem(handle, address + 0x58 as usize).unwrap();
+    let address = read_mem(handle, address + 0x78 as usize).unwrap();
+
+    address
+}
+
 fn main() {
     let process_data = match find_process("bf") {
         Ok(process) => process,
@@ -151,12 +238,26 @@ fn main() {
 
     let base_address = module_entry.modBaseAddr as usize;
 
-    let nickname = read_sender_nickname(process_handle, base_address);
-    println!("SENDER NICKNAME: {:#?}", nickname.split(":").next().unwrap().to_string());
+    // let nickname = read_sender_nickname(process_handle, base_address);
+    // println!("SENDER NICKNAME: {:#?}", nickname.split(":").next().unwrap().to_string());
 
-    let message = read_sender_message(process_handle, base_address);
-    println!("SENDER MESSAGE: {:#?}", message.trim());
+    // let message = read_sender_message(process_handle, base_address);
+    // println!("SENDER MESSAGE: {:#?}", message.trim());
 
+    // let server_name = get_server_name(process_handle, base_address);
+    // println!("SERVER NAME: {:#?}", server_name);
+
+    // let server_id = get_server_id(process_handle, base_address);
+    // println!("SERVER ID: {:#?}", server_id);
+
+    // let map_name = get_map_name(process_handle);
+    // println!("MAP NAME: {:#?}", map_name);
+
+    // let game_mode = get_game_mode(process_handle);
+    // println!("GAME MODE: {:#?}", game_mode);
+
+    let server_time = get_server_time(process_handle, base_address);
+    println!("SERVER TIME: {:#?}", server_time);
 }
 
 fn get_base_address() {
