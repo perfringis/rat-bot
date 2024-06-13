@@ -198,6 +198,17 @@ fn get_server_time(handle: HANDLE, address: usize) -> usize {
     address
 }
 
+fn get_server_score_ptr(handle: HANDLE, address: usize) -> usize {
+    // this is pointer to server score
+
+    let address = read_mem(handle, address + 0x3A0FC40 as usize).unwrap();
+    let address = read_mem(handle, address + 0x58 as usize).unwrap();
+    let address = read_mem(handle, address + 0x18 as usize).unwrap();
+    let address = read_mem(handle, address + 0x08 as usize).unwrap();
+
+    address
+}
+
 fn main() {
     let process_data = match find_process("bf") {
         Ok(process) => process,
@@ -256,8 +267,11 @@ fn main() {
     // let game_mode = get_game_mode(process_handle);
     // println!("GAME MODE: {:#?}", game_mode);
 
-    let server_time = get_server_time(process_handle, base_address);
-    println!("SERVER TIME: {:#?}", server_time);
+    // let server_time = get_server_time(process_handle, base_address);
+    // println!("SERVER TIME: {:#?}", server_time);
+
+    let server_score_ptr = get_server_score_ptr(process_handle, base_address);
+    println!("SERVER SCORE PTR: {:#?}", server_score_ptr);
 }
 
 fn get_base_address() {
