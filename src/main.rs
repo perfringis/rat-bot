@@ -4,7 +4,7 @@ extern crate winapi;
 use std::ffi::{CStr, OsStr, OsString};
 use std::io::Read;
 use std::iter::once;
-use std::mem::size_of;
+use std::mem::{size_of, zeroed};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr::{self, null_mut};
 use std::str::FromStr;
@@ -48,6 +48,49 @@ fn read_mem(handle: HANDLE, address: usize) -> Option<usize> {
         Some(usize::from_ne_bytes(buffer[..8].try_into().unwrap()))
     }
 }
+
+fn read_mem_float(handle: HANDLE, address: usize) -> Option<u8> {
+    let mut buffer = vec![0u8; 8];
+
+    let read_result = unsafe {
+        ReadProcessMemory(
+            handle as HANDLE,
+            address as LPCVOID,
+            buffer.as_mut_ptr() as LPVOID,
+            size_of::<u8>() as SIZE_T,
+            null_mut(),
+        )
+    };
+
+    if read_result == 0 {
+        None
+    } else {
+        Some(u8::from_ne_bytes(buffer[..8].try_into().unwrap()))
+    }
+}
+
+// pub fn read<T>(handle: HANDLE, address: usize) -> crate::Option<T> {
+//     unsafe {
+//         let mut buf = zeroed();
+//         let mut _read = 0;
+
+//         let result = unsafe {
+//             ReadProcessMemory(
+//                 handle as HANDLE,
+//                 address as LPCVOID,
+//                 &mut buf as *mut T as LPVOID,
+//                 size_of::<T>(),
+//                 &mut _read,
+//             );
+//         };
+
+//         if result == 0 {
+//             None
+//         }else {
+//             Some(buf)
+//         }
+//     }
+// }
 
 fn read_sender_nickname(handle: HANDLE, address: usize) -> String {
     let address = read_mem(handle, address + 0x39F1E50 as usize).unwrap();
@@ -270,8 +313,10 @@ fn main() {
     // let server_time = get_server_time(process_handle, base_address);
     // println!("SERVER TIME: {:#?}", server_time);
 
-    let server_score_ptr = get_server_score_ptr(process_handle, base_address);
-    println!("SERVER SCORE PTR: {:#?}", server_score_ptr);
+    // let server_score_ptr = get_server_score_ptr(process_handle, base_address);
+    // println!("SERVER SCORE PTR: {:#?}", server_score_ptr);
+
+    test();
 }
 
 fn get_base_address() {
