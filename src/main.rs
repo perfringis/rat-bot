@@ -3,6 +3,7 @@ use actix_web::{web, App, HttpServer};
 mod controllers;
 mod services;
 mod entities;
+mod utils;
 
 use controllers::message_controller::MessageController;
 

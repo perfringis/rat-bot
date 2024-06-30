@@ -1,36 +1,34 @@
 use sysinfo::System;
 
-pub struct Process;
-
-#[derive(Debug)]
 pub struct DiskUsageData {
-    total_written_bytes: u64,
-    written_bytes: u64,
-    total_read_bytes: u64,
-    read_bytes: u64,
+    pub total_written_bytes: u64,
+    pub written_bytes: u64,
+    pub total_read_bytes: u64,
+    pub read_bytes: u64,
 }
 
-#[derive(Debug)]
 pub struct ProcessData {
-    process_id: u32,
-    parent_process_id: u32,
-    process_name: String,
-    environment_variables: Vec<String>,
-    command_line: Vec<String>,
-    executable_path: String,
-    current_working_directory: String,
-    memory_usage: u64,
-    virtual_memory_usage: u64,
-    cpu_usage: f32,
-    status: String,
-    root: String,
-    disk_usage: DiskUsageData,
-    user_id: String,
-    effective_user_id: String,
-    effective_group_id: String,
-    group_id: String,
-    running_time: u64,
+    pub process_id: u32,
+    pub parent_process_id: u32,
+    pub process_name: String,
+    pub environment_variables: Vec<String>,
+    pub command_line: Vec<String>,
+    pub executable_path: String,
+    pub current_working_directory: String,
+    pub memory_usage: u64,
+    pub virtual_memory_usage: u64,
+    pub cpu_usage: f32,
+    pub status: String,
+    pub root: String,
+    pub disk_usage: DiskUsageData,
+    pub user_id: String,
+    pub effective_user_id: String,
+    pub effective_group_id: String,
+    pub group_id: String,
+    pub running_time: u64,
 }
+
+pub struct Process;
 
 impl Process {
     pub fn get_by_name(process_name: &str) -> Option<ProcessData> {
