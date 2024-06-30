@@ -6,9 +6,9 @@ pub struct MessageController;
 
 impl MessageController {
     pub async fn get_latest() -> impl Responder {
-        MessageService::test();
+        let message = MessageService::get_latest();
 
-        HttpResponse::Ok().body("Hello world!")
+        HttpResponse::Ok().json(message)
     }
 
     pub async fn get_latest_sender() -> impl Responder {
