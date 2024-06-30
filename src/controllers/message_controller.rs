@@ -12,10 +12,14 @@ impl MessageController {
     }
 
     pub async fn get_latest_sender() -> impl Responder {
-        HttpResponse::Ok().body("Hello world!")
+        let message = MessageService::get_latest_sender();
+
+        HttpResponse::Ok().json(message)
     }
 
     pub async fn get_latest_content() -> impl Responder {
-        HttpResponse::Ok().body("Hello world!")
+        let message = MessageService::get_latest_content();
+
+        HttpResponse::Ok().json(message)
     }
 }
