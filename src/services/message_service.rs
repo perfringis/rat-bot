@@ -14,6 +14,7 @@ use winapi::um::tlhelp32::{
 use winapi::um::winnt::PROCESS_ALL_ACCESS;
 
 use crate::entities::message_entity::MessageEntity;
+use crate::utils::Memory::Memory;
 use crate::utils::Process::Process;
 
 pub struct MessageService;
@@ -97,6 +98,9 @@ impl MessageService {
         let base_address = module_entry.modBaseAddr as usize;
 
         let nickname = MessageService::read_sender_nickname(process_handle, base_address);
+
+        let is_chat_open = Memory::is_chat_open(process_handle, base_address);
+        println!("MK TEST {:#?}", is_chat_open);
 
         let message = MessageEntity {
             sender: Some(nickname.split(":").next().unwrap().to_string()),
