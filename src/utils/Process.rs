@@ -38,9 +38,9 @@ impl Process {
 
         for process in system.processes().values() {
             if process.name().contains(process_name) {
-                let process_data: ProcessData = ProcessData {
+                let process_data = ProcessData {
                     process_id: process.pid().as_u32(),
-                    parent_process_id: process.parent().unwrap().as_u32(),
+                    parent_process_id: process.parent().unwrap_or(0.into()).as_u32(),
                     process_name: process.name().to_string(),
                     environment_variables: process.environ().into(),
                     command_line: process.cmd().into(),
@@ -60,15 +60,15 @@ impl Process {
                     user_id: process.user_id().unwrap().to_string(),
                     effective_user_id: match process.effective_user_id() {
                         Some(user_id) => user_id.to_string(),
-                        None => String::from("None"),
+                        None => String::new(),
                     },
                     effective_group_id: match process.effective_group_id() {
                         Some(group_id) => group_id.to_string(),
-                        None => String::from("None"),
+                        None => String::new(),
                     },
                     group_id: match process.group_id() {
                         Some(group_id) => group_id.to_string(),
-                        None => String::from("None"),
+                        None => String::new(),
                     },
                     running_time: process.run_time(),
                 };

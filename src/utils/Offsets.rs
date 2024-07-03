@@ -1,0 +1,1 @@
+pub const OFFSET_CHAT_LAST_SENDER: usize = 0x138;
